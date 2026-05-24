@@ -1,0 +1,354 @@
+extends ../../layout/default.pug
+
+block main
+    .dashboard-container
+        //- Header Welcome
+        .dashboard-header
+            .header-content
+                h1.page-title Dashboard Overview
+                p.sub-title Xin chào, #{user.fullName}! Chúc bạn một ngày làm việc hiệu quả.
+            .header-actions
+                button.btn-action 
+                    i.fas.fa-download 
+                    | Export Report
+
+        //- 1. Cards Stats Row (Material Cards)
+        .stats-grid
+            //- Card 1: Revenue
+            .stat-card.card-revenue
+                .card-icon-wrapper
+                    i.fas.fa-wallet
+                .card-info
+                    span.card-label Doanh Thu (Đơn Hàng)
+                    h3.card-value $#{statistics.revenue.fromOrders}
+                    span.card-trend.up 
+                        i.fas.fa-arrow-up 
+                        | Tháng này: $#{statistics.revenue.monthly}
+
+            //- Card 2: Orders
+            .stat-card.card-orders
+                .card-icon-wrapper
+                    i.fas.fa-shopping-cart
+                .card-info
+                    span.card-label Đơn Hàng
+                    h3.card-value #{statistics.orders ? statistics.orders.total : 0}
+                    span.card-sub #{statistics.orders ? statistics.orders.completed : 0} Hoàn thành | #{statistics.orders ? statistics.orders.pending : 0} Chờ xử lý
+
+            //- Card 3: Products
+            .stat-card.card-products
+                .card-icon-wrapper
+                    i.fas.fa-box-open
+                .card-info
+                    span.card-label Sản Phẩm
+                    h3.card-value #{statistics.products.total}
+                    span.card-sub #{statistics.products.active} Hoạt động | #{statistics.products.outOfStock} Hết hàng
+
+            //- Card 4: Users
+            .stat-card.card-users
+                .card-icon-wrapper
+                    i.fas.fa-users
+                .card-info
+                    span.card-label Người Dùng
+                    h3.card-value #{statistics.users.total}
+                    span.card-trend.up 
+                        i.fas.fa-plus 
+                        | #{statistics.newThisWeek.users} Mới tuần này
+
+            //- Card 5: Categories
+            .stat-card.card-categories
+                .card-icon-wrapper
+                    i.fas.fa-shapes
+                .card-info
+                    span.card-label Danh Mục
+                    h3.card-value #{statistics.categories.total}
+                    span.card-sub #{statistics.categories.active} Đang hiển thị
+
+        //- 2. Charts Section
+        .content-row
+            //- Revenue Chart
+            .content-col.col-lg-6
+                .material-card
+                    .card-header
+                        h3.card-title 
+                            i.fas.fa-chart-line
+                            | Doanh Thu Theo Trạng Thái Đơn
+                    .card-body
+                        canvas#revenueChart(height="300")
+
+            //- Order Status Chart
+            .content-col.col-lg-6
+                .material-card
+                    .card-header
+                        h3.card-title 
+                            i.fas.fa-chart-pie
+                            | Phân Bố Đơn Hàng
+                    .card-body.flex-center
+                        canvas#orderStatusChart(height="300")
+
+        //- 3. Tables Section
+        .content-row
+            //- Recent Orders
+            .content-col.col-lg-8
+                .material-card
+                    .card-header
+                        h3.card-title 
+                            i.fas.fa-clock
+                            | Đơn Hàng Gần Đây
+                    .card-body.p-0
+                        .table-responsive
+                            table.table.table-hover
+                                thead
+                                    tr
+                                        th Khách Hàng
+                                        th Trạng Thái
+                                        th Ngày
+                                        th Tổng Tiền
+                                tbody
+                                    //- Kiểm tra an toàn: Nếu statistics.recentOrders tồn tại và có độ dài > 0
+                                    if (statistics.recentOrders && statistics.recentOrders.length > 0)
+                                        each item in statistics.recentOrders
+                                            tr
+                                                td
+                                                    .product-cell
+                                                        .product-info
+                                                            //- Kiểm tra item.user_id có tồn tại không trước khi in ra
+                                                            if item.user_id
+                                                                span.name #{item.user_id.fullName}
+                                                                span.date #{item.user_id.phone || item.user_id.email}
+                                                            else
+                                                                span.name Khách vãng lai
+                                                                span.date ---
+                                                td
+                                                    //- Badge trạng thái
+                                                    - const statusClass = item.status === 'delivered' ? 'success' : item.status === 'cancelled' ? 'danger' : item.status === 'shipped' ? 'info' : 'warning';
+                                                    span(class=`badge badge-${statusClass}`)
+                                                        if (item.status === 'pending')
+                                                            | Chờ xử lý
+                                                        else if (item.status === 'processing')
+                                                            | Đang xử lý
+                                                        else if (item.status === 'shipped')
+                                                            | Đã gửi
+                                                        else if (item.status === 'delivered')
+                                                            | Đã giao
+                                                        else if (item.status === 'cancelled')
+                                                            | Đã hủy
+                                                        else 
+                                                            | #{item.status}
+                                                td.text-muted
+                                                    small #{new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                                                td.price
+                                                    //- Tính tổng tiền an toàn hơn
+                                                    - let orderTotal = 0;
+                                                    if (item.products)
+                                                        - item.products.forEach(p => { orderTotal += (p.price * (100 - (p.discountPercentage || 0)) / 100) * p.quantity; });
+                                                    | $#{orderTotal.toFixed(2)}
+                                    else
+                                        tr
+                                            td(colspan="4" class="text-center") Không có đơn hàng nào gần đây.
+
+            //- Low Stock Alert
+            .content-col.col-lg-4
+                .material-card
+                    .card-header
+                        h3.card-title.text-danger
+                            i.fas.fa-exclamation-triangle
+                            | Cảnh Báo Sắp Hết Hàng
+                    .card-body.p-0
+                        .table-responsive
+                            table.table.table-hover
+                                thead
+                                    tr
+                                        th Sản phẩm
+                                        th Trạng thái
+                                        th Số lượng
+                                tbody
+                                    each item in statistics.lowStockProducts
+                                        tr
+                                            td
+                                                .product-cell
+                                                    img(src=item.thumbnail alt=item.title)
+                                                    span.name #{item.title}
+                                            td
+                                                span.badge.badge-warning Sắp hết
+                                            td.text-danger.font-weight-bold #{item.stock}
+
+    //- Styles
+    style.
+        :root {
+            --primary: #5e72e4;
+            --secondary: #f7fafc;
+            --success: #2dce89;
+            --info: #11cdef;
+            --warning: #fb6340;
+            --danger: #f5365c;
+            --dark: #32325d;
+            --text: #525f7f;
+            --gray: #8898aa;
+            --bg: #f8f9fe;
+            --card-shadow: 0 0 2rem 0 rgba(136, 152, 170, .15);
+        }
+
+        body { background-color: var(--bg); color: var(--text); font-family: 'Open Sans', sans-serif; }
+
+        .dashboard-container { padding: 30px; min-height: 100vh; }
+
+        /* Header */
+        .dashboard-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
+            background: white; padding: 20px 30px; border-radius: 15px; box-shadow: var(--card-shadow);
+        }
+        .page-title { font-size: 1.5rem; font-weight: 700; color: var(--dark); margin: 0; }
+        .sub-title { color: var(--gray); margin: 5px 0 0 0; font-size: 0.9rem; }
+        .btn-action {
+            background: var(--primary); color: white; border: none; padding: 10px 20px;
+            border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 8px;
+        }
+        .btn-action:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(50,50,93,.11); }
+
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 30px; }
+        .stat-card {
+            background: white; border-radius: 15px; padding: 20px;
+            display: flex; align-items: flex-start; gap: 20px;
+            box-shadow: var(--card-shadow); transition: 0.3s;
+            border-left: 5px solid transparent;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+
+        .card-revenue { border-color: var(--success); }
+        .card-revenue .card-icon-wrapper { background: rgba(45, 206, 137, 0.1); color: var(--success); }
+
+        .card-products { border-color: var(--info); }
+        .card-products .card-icon-wrapper { background: rgba(17, 205, 239, 0.1); color: var(--info); }
+
+        .card-users { border-color: var(--warning); }
+        .card-users .card-icon-wrapper { background: rgba(251, 99, 64, 0.1); color: var(--warning); }
+
+        .card-orders { border-color: var(--primary); }
+        .card-orders .card-icon-wrapper { background: rgba(94, 114, 228, 0.1); color: var(--primary); }
+
+        .card-categories { border-color: var(--info); }
+        .card-categories .card-icon-wrapper { background: rgba(17, 205, 239, 0.1); color: var(--info); }
+
+        .card-icon-wrapper {
+            width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+        }
+        .card-info { flex: 1; }
+        .card-label { font-size: 0.8rem; text-transform: uppercase; color: var(--gray); font-weight: 600; letter-spacing: 0.5px; }
+        .card-value { font-size: 1.5rem; font-weight: 700; color: var(--dark); margin: 5px 0; }
+        .card-sub { font-size: 0.8rem; color: var(--gray); }
+        .card-trend.up { color: var(--success); font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+
+        /* Layout & Material Card */
+        .content-row { display: flex; flex-wrap: wrap; margin: 0 -12px; margin-bottom: 24px; }
+        .content-col { padding: 0 12px; margin-bottom: 24px; }
+        .col-lg-8 { width: 66.666%; }
+        .col-lg-4 { width: 33.333%; }
+        .col-lg-6 { width: 50%; }
+
+        .material-card {
+            background: white; border-radius: 12px; box-shadow: var(--card-shadow);
+            height: 100%; overflow: hidden; display: flex; flex-direction: column;
+        }
+        .card-header { padding: 20px; border-bottom: 1px solid #e9ecef; }
+        .card-title { margin: 0; font-size: 1.1rem; color: var(--dark); display: flex; align-items: center; gap: 10px; font-weight: 600; }
+        .card-body { padding: 20px; flex: 1; }
+        .card-body.p-0 { padding: 0; }
+        .flex-center { display: flex; align-items: center; justify-content: center; }
+
+        /* Tables */
+        .table-responsive { overflow-x: auto; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th { text-align: left; padding: 15px 20px; background: #f6f9fc; color: var(--gray); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; }
+        .table td { padding: 15px 20px; border-bottom: 1px solid #e9ecef; vertical-align: middle; }
+        .table tr:last-child td { border-bottom: none; }
+
+        .product-cell { display: flex; align-items: center; gap: 15px; }
+        .product-cell img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+        .product-info { display: flex; flex-direction: column; }
+        .product-info .name { font-weight: 600; color: var(--dark); font-size: 0.9rem; }
+        .product-info .date { font-size: 0.75rem; color: var(--gray); }
+        .price { font-weight: 700; color: var(--primary); }
+
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+        .badge-success { background: #e0fdf4; color: #10b981; }
+        .badge-warning { background: #fffbeb; color: #f59e0b; }
+        .badge-info { background: #cffafe; color: #0891b2; }
+        .badge-danger { background: #fee2e2; color: #dc2626; }
+        .text-danger { color: var(--danger) !important; }
+        .text-muted { color: var(--gray); }
+        .font-weight-bold { font-weight: 700; }
+
+        @media (max-width: 992px) {
+            .col-lg-8, .col-lg-4, .col-lg-6 { width: 100%; }
+        }
+
+    //- Chart.js Script Integration
+    script(src="https://cdn.jsdelivr.net/npm/chart.js")
+    script.
+        // Dữ liệu từ Server (Pug render ra object JS)
+        const statsData = !{JSON.stringify(statistics)};
+
+        // 1. Chart Doanh Thu (Revenue Chart - Line/Bar)
+        const ctxRevenue = document.getElementById('revenueChart').getContext('2d');
+        const revenueLabels = ['Chờ xử lý', 'Đang xử lý', 'Đã gửi', 'Đã giao', 'Đã hủy'];
+        const revenueData = [
+            statsData.orders.byStatus.pending || 0,
+            statsData.orders.byStatus.processing || 0,
+            statsData.orders.byStatus.shipped || 0,
+            statsData.orders.byStatus.delivered || 0,
+            statsData.orders.byStatus.cancelled || 0
+        ];
+
+        new Chart(ctxRevenue, {
+            type: 'bar',
+            data: {
+                labels: revenueLabels,
+                datasets: [{
+                    label: 'Doanh Thu ($)',
+                    data: revenueData,
+                    backgroundColor: ['#fb6340', '#11cdef', '#2dce89', '#2dce89', '#f5365c'],
+                    borderRadius: 5,
+                    barThickness: 35
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: true, position: 'top' } },
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { borderDash: [2, 2] },
+                        ticks: { callback: function(value) { return '$' + value.toFixed(0); } }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // 2. Chart Phân Bố Đơn Hàng (Order Status Pie)
+        const ctxOrderStatus = document.getElementById('orderStatusChart').getContext('2d');
+        new Chart(ctxOrderStatus, {
+            type: 'doughnut',
+            data: {
+                labels: ['Hoàn thành', 'Chờ xử lý', 'Đã hủy'],
+                datasets: [{
+                    data: [
+                        statsData.orders.completed || 0,
+                        statsData.orders.pending || 0,
+                        statsData.orders.cancelled || 0
+                    ],
+                    backgroundColor: ['#2dce89', '#fb6340', '#f5365c'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
+                },
+                cutout: '65%'
+            }
+        });

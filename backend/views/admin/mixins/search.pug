@@ -1,0 +1,14 @@
+//- Mixin Tìm kiếm: Nối liền Input và Button
+mixin search(keyword)
+    form(id="form-search")
+        .input-group
+            input.form-control(
+                type="text", 
+                name="keyword",
+                placeholder="Nhập từ khóa...", 
+                value=keyword
+            )
+            button.btn.btn-outline-primary(type="submit")
+                i.fa-solid.fa-magnifying-glass.me-1
+                | Tìm
+

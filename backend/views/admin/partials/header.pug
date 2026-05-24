@@ -1,0 +1,16 @@
+Header.header 
+    .container-fluid
+        .d-flex.align-items-center.justify-content-between
+            .inner-logo.d-flex.align-items-center
+                a(href=`/${prefixAdmin}/dashboard`)
+                    img(src='/images/logo.jpg' alt='Logo' class='logo' style='height:36px;object-fit:contain;')
+            //- Right actions: account and logout
+            .header-right.d-flex.align-items-center
+                //- Account chip
+                a.avatar-chip.mr-3(href=`/${prefixAdmin}/my-account`)
+                    span.avatar-circle #{(user && user.fullName ? user.fullName.charAt(0) : 'U')}
+                    span.fw-semibold #{user && user.fullName ? user.fullName : 'User'}
+                //- Logout button with icon
+                a.btn.btn-outline-light.btn-icon(title='Logout', href=`/${prefixAdmin}/auth/logout`)
+                    i.bi.bi-box-arrow-right
+

@@ -1,0 +1,18 @@
+//- Mixin Sắp xếp: Nối liền Select và nút Clear
+mixin sortProducts()
+    div(sort)
+        .input-group
+            select.form-select(name="sort" sort-select)
+                option(value="position_desc") Vị trí giảm dần
+                option(value="position_asc") Vị trí tăng dần
+                option(value="price_desc") Giá giảm dần
+                option(value="price_asc") Giá tăng dần
+                option(value="title_asc") Tên A-Z
+                option(value="title_desc") Tên Z-A
+                option(value="createdAt_desc") Mới nhất
+                option(value="createdAt_asc") Cũ nhất
+            
+            button.btn.btn-outline-secondary(sort-clear type="button")
+                i.fa-solid.fa-xmark.me-1
+                | Clear
+

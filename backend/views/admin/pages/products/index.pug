@@ -1,0 +1,162 @@
+extends ../../layout/default.pug
+include ../../mixins/filter-status.pug
+include ../../mixins/search.pug
+include ../../mixins/pagination.pug
+include ../../mixins/form-change-multi.pug
+include ../../mixins/alert.pug
+include ../../mixins/sort.pug
+
+block main 
+    if (role.permissions.includes('products_view'))
+
+        +alert-success(5000)
+
+        //- 1. Header
+        .d-flex.justify-content-between.align-items-center.mb-4
+            h1.h3.mb-0 Product List
+
+        //- 2. Control Panel (Card trắng chứa bộ lọc)
+        .card.mb-4.shadow-sm
+            .card-body
+                .row.g-3
+                    //- Cột 1: Tìm kiếm
+                    .col-md-4
+                        label.form-label.fw-bold.text-secondary Tìm kiếm
+                        +search(keyword)
+
+                    //- Cột 2: Sắp xếp
+                    .col-md-4
+                        label.form-label.fw-bold.text-secondary Sắp xếp theo
+                        +sortProducts()
+
+                    //- Cột 3: Bộ lọc trạng thái
+                    .col-md-4
+                        label.form-label.fw-bold.text-secondary Trạng thái
+                        div
+                            +filter-status(filterStatus)
+
+        //- 3. Action Bar (Nằm ngay trên bảng)
+        .row.align-items-center.mb-3
+            .col-md-6
+                //- Form đổi nhiều trạng thái
+                +form-change-multi(`/${prefixAdmin}/products/change-multi?_method=PATCH`)
+            
+            .col-md-6.text-end
+                if role.permissions.includes('products_create')
+                    a.btn.btn-primary(href=`/${prefixAdmin}/products/create`)
+                        i.fa-solid.fa-plus.me-2
+                        | Tạo mới
+
+
+
+        table(
+            class="product-table"
+            checkbox-multi
+        )
+            thead
+                tr
+                    th 
+                        input(
+                            type="checkbox"
+                            name="check-all")
+                    th ID
+                    th Image
+                    th Name
+                    th Price
+                    th Position
+                    th Category
+                    th Status
+                    th Actions
+            tbody
+                each product, index in products
+                    tr  
+                        td 
+                            input(
+                                type="checkbox"
+                                name="id"
+                                value=product._id
+                            )
+                        - const currentPage = Number(pagination.currentPage);
+                        - const limitItem = Number(pagination.limitItem);
+                        td #{index + 1 + (currentPage - 1) * limitItem}
+                        td
+                            img(src=product.thumbnail, alt=product.title, class="product-image")
+                        td #{product.title}
+                        td #{product.price} $
+                        td 
+                            input(
+                            class="form-control"
+                            style="width: 150px;"
+                            type="number"
+                            value=product.position
+                            min=1
+                            name="position"
+                            )
+                        td 
+                            if product.product_category_id && product.product_category_id.title
+                                = product.product_category_id.title
+                            else if product.category
+                                = product.category
+                            else
+                                | N/A
+
+                        td
+                            if role.permissions.includes('products_edit')
+                                if (product.status == 'active')
+                                    a(
+                                        href="javascript:;"
+                                        data-status=product.status
+                                        data-id=product._id
+                                        button-change-status
+                                        class="status available"
+                                        ) Active
+                                else
+                                    a(
+                                        href="javascript:;"
+                                        data-status=product.status 
+                                        data-id=product._id
+                                        button-change-status
+                                        class="status out-of-stock"
+                                        ) Inactive
+                            else 
+                                if (product.status == 'active')
+                                    span.available Active
+                                else
+                                    span.out-of-stock Inactive
+
+                        td
+                            if role.permissions.includes('products_edit')
+                                a(
+                                    href=`/${prefixAdmin}/products/edit/${product._id}`
+                                    class="btn btn-edit"
+                                ) Edit
+
+                            a(
+                                href=`/${prefixAdmin}/products/detail/${product._id}`
+                                class="btn btn-secondary"
+                            ) Detail
+                            if role.permissions.includes('products_delete')
+                                button(
+                                    class="btn btn-delete"
+                                    data-id=product._id
+                                    button-delete
+                                ) Delete
+
+        +pagination(pagination)
+
+        form(
+            id="form-change-status"
+            action=""
+            method="POST"
+            data-path=`/${prefixAdmin}/products/change-status`
+        )
+
+        form(
+            id="form-delete-item"
+            action=""
+            method="POST"
+            data-path=`/${prefixAdmin}/products/delete`
+        )
+
+
+        script(src="/admin/js/product.js")

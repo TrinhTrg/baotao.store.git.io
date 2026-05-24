@@ -1,0 +1,9 @@
+//- Mixin Lọc trạng thái: Giữ nguyên logic, chỉnh lại class
+mixin filter-status(filterStatus)
+    .btn-group(role="group")
+        each item in filterStatus
+            button(
+                type="button" 
+                class=`btn btn-outline-primary ${item.class}` 
+                button-status=item.status
+            ) #{item.name}
