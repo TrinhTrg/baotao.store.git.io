@@ -71,8 +71,8 @@ This project implements a complete e-commerce platform supporting:
 
 #### 1. Clone Repository
 ```bash
-git clone https://github.com/yourusername/e-commerce_platform.git
-cd e-commerce_platform
+git clone https://github.com/TrinhTrg/baotao.store.git
+cd baotao.store
 ```
 
 #### 2. Frontend Setup
@@ -487,6 +487,6 @@ For questions or support:
 
 ---
 
-**Made with ❤️ by Your Development Team**
+**Made with ❤️ by IMPOVERISHED Team**
 
-Last Updated: December 24, 2025
+Last Updated: May 24, 2026
